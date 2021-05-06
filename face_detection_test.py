@@ -82,8 +82,8 @@ class Handler:
         else:
             ctx = mx.cpu()
         image_size = (im_size, im_size)
-        #self.detector = insightface.model_zoo.get_model('retinaface_mnet025_v2')  #can replace with your own face detector
-        self.detector = insightface.model_zoo.get_model('retinaface_r50_v1')
+        self.detector = insightface.model_zoo.get_model('retinaface_mnet025_v2')  #can replace with your own face detector
+        #self.detector = insightface.model_zoo.get_model('retinaface_r50_v1')
         print(self.detector)
         self.detector.prepare(ctx_id=ctx_id)
         self.det_size = det_size
@@ -147,12 +147,27 @@ class Handler:
 
 if __name__ == '__main__':
     handler = Handler('./2d106det/2d106det', 0, ctx_id=-1, det_size=640)
-    im = cv2.imread('./insightface/sample-images/t1.jpg')
-    tim = im.copy()
-    preds = handler.get(im, get_all=True)
-    for pred in preds:
-        pred = np.round(pred).astype(np.int)
-        for i in range(pred.shape[0]):
-            p = tuple(pred[i])
-            cv2.circle(tim, p, 1, (255, 0, 0), 1, cv2.LINE_AA)
-    cv2.imwrite('./test_out.jpg', tim)
+
+    # get video 
+    cap = cv2.VideoCapture("../video.mp4")
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    rate = cap.get(cv2.CAP_PROP_FPS)
+
+    image_count = 0
+    success = True
+    while success:  
+        # read image 
+        success, image = cap.read()
+        # process
+        preds = handler.get(image, get_all=True)
+        # plot on image 
+        for count, pred in enumerate(preds):    
+            pred = np.round(pred).astype(np.int)
+            for pr in pred[52:72]:
+                p = tuple(pr)
+                cv2.circle(image, p, 1, (255, 0, 0), 1, cv2.LINE_AA)
+        # save output 
+        print("Detect {} face in frame {}".format(len(preds), image_count))
+        if len(preds):
+            cv2.imwrite("./output/frame_{}.jpg".format(image_count), image)
+        image_count = image_count + 1
