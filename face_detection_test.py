@@ -5,7 +5,6 @@ import mxnet as mx
 from skimage import transform as trans
 import insightface
 
-
 def square_crop(im, S):
     if im.shape[0] > im.shape[1]:
         height = S
@@ -178,6 +177,8 @@ if __name__ == '__main__':
         with open('output/result.json', 'w') as f:
             json.dump(data, f, indent=4)
 
+        # Point 52 ~ 71 represent mouth location 
+        
         # # plot on image 
         # for count, pred in enumerate(preds):    
         #     pred = np.round(pred).astype(np.int)
