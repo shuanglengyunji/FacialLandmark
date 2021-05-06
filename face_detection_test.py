@@ -150,10 +150,9 @@ if __name__ == '__main__':
     im = cv2.imread('./insightface/sample-images/t1.jpg')
     tim = im.copy()
     preds = handler.get(im, get_all=True)
-    color = (200, 160, 75)
     for pred in preds:
         pred = np.round(pred).astype(np.int)
         for i in range(pred.shape[0]):
             p = tuple(pred[i])
-            cv2.circle(tim, p, 1, color, 1, cv2.LINE_AA)
+            cv2.circle(tim, p, 1, (255, 0, 0), 1, cv2.LINE_AA)
     cv2.imwrite('./test_out.jpg', tim)
