@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import os
+import json
 import mxnet as mx
 from skimage import transform as trans
 import insightface
@@ -144,6 +144,15 @@ class Handler:
             out.append(pred)
         return out
 
+def to_pure_list(data):
+    if isinstance(data, np.ndarray):
+        return data.tolist()    # this will make sure all sub structures are converted to list 
+    elif isinstance(data, list):
+        return [to_pure_list(d) for d in data]
+    elif isinstance(data, dict):
+        return to_pure_list(list(data.values()))
+    else:
+        return data
 
 if __name__ == '__main__':
     handler = Handler('./2d106det/2d106det', 0, ctx_id=-1, det_size=640)
@@ -153,6 +162,7 @@ if __name__ == '__main__':
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     rate = cap.get(cv2.CAP_PROP_FPS)
 
+    data = dict()
     image_count = 0
     success = True
     while success:  
@@ -160,14 +170,22 @@ if __name__ == '__main__':
         success, image = cap.read()
         # process
         preds = handler.get(image, get_all=True)
-        # plot on image 
-        for count, pred in enumerate(preds):    
-            pred = np.round(pred).astype(np.int)
-            for pr in pred[52:72]:
-                p = tuple(pr)
-                cv2.circle(image, p, 1, (255, 0, 0), 1, cv2.LINE_AA)
-        # save output 
-        print("Detect {} face in frame {}".format(len(preds), image_count))
-        if len(preds):
-            cv2.imwrite("./output/frame_{}.jpg".format(image_count), image)
+        # output progress
+        print("detect {} faces on frame {}".format(len(preds), image_count))
+
+        # save to json file 
+        data[image_count] = to_pure_list(preds)   # save data to dict 
+        with open('output/result.json', 'w') as f:
+            json.dump(data, f, indent=4)
+
+        # # plot on image 
+        # for count, pred in enumerate(preds):    
+        #     pred = np.round(pred).astype(np.int)
+        #     for pr in pred[52:72]:
+        #         p = tuple(pr)
+        #         cv2.circle(image, p, 1, (255, 0, 0), 1, cv2.LINE_AA)
+        # # save output 
+        # if len(preds):
+        #     cv2.imwrite("./output/frame_{}.jpg".format(image_count), image)
+
         image_count = image_count + 1
