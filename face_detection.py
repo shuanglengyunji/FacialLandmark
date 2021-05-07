@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import json
+import time
 import mxnet as mx
 from skimage import transform as trans
 import insightface
@@ -154,7 +155,7 @@ def to_pure_list(data):
         return data
 
 if __name__ == '__main__':
-    handler = Handler('./2d106det/2d106det', 0, ctx_id=-1, det_size=640)
+    handler = Handler('./2d106det/2d106det', 0, ctx_id=0, det_size=640)
 
     # get video 
     cap = cv2.VideoCapture("../video.mp4")
@@ -171,11 +172,13 @@ if __name__ == '__main__':
         preds = handler.get(image, get_all=True)
         # output progress
         print("detect {} faces on frame {}".format(len(preds), image_count))
-
-        # save to json file 
-        data[image_count] = to_pure_list(preds)   # save data to dict 
-        with open('output/result.json', 'w') as f:
-            json.dump(data, f, indent=4)
+        # save data to dict 
+        data[image_count] = to_pure_list(preds) 
+        # save dict to json file 
+        if image_count % 1500 == 1499 or image_count == length-1 or image_count == length:
+            f = open('output/result_{}.json'.format(image_count), 'w')
+            json.dump(data, f)
+            data = dict()   # clear data 
 
         # Point 52 ~ 71 represent mouth location 
         
