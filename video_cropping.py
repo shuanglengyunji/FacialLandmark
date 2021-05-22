@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     # output video
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter('./temp/output.mp4', fourcc, rate, (width, height))
+    out = cv2.VideoWriter('./temp/output.mp4', fourcc, rate, (200, 100))
 
     while True:  
         # read image 
@@ -36,52 +36,35 @@ if __name__ == '__main__':
 
         # get predict results 
         preds = data[str(image_count)]
-
         preds = sorted(preds, key=lambda pred: np.array(pred)[:,0].mean(), reverse=True)
 
-        # # plot on image 
+        # shift and rotate 
         if len(preds):
             pred = preds[0]
             
-            # calculate 
             vertical = np.array(pred)[[1, 8, 10, 19]]
-            vertical[:, 1] = height - vertical[:, 1]
+            centre = tuple(vertical.mean(0).astype(int))
+
             horizontal = np.array(pred)[[0, 13, 14, 2, 10, 8, 18, 5, 17, 9]]
             horizontal[:, 1] = height - horizontal[:,1]
-
-            middle = vertical.mean(0)
             component = PCA(n_components=1).fit(horizontal).components_[0]
             theta = np.arctan2(component[1], component[0])
-            c, s = np.cos(theta), np.sin(theta)
-            R = np.array(((c, -s), (s, c)))
-            corners = (R @ np.array([[100, 50], [100, -50], [-100, 50], [-100, -50]]).T).T
-            corners[:,0] = corners[:,0] + middle[0]
-            corners[:,1] = corners[:,1] + middle[1]
+            if theta < -np.pi/2:
+                theta = theta + np.pi
+            elif theta > np.pi/2:
+                theta = theta - np.pi
+            
+            M = np.float32([[1, 0, width/2 - centre[0]], [0, 1, height/2 - centre[1]]])
+            image = cv2.warpAffine(image, M, (width, height))
 
-            # plt.figure()
-            # plt.plot(middle[0], middle[1], 'k.')
-            # plt.plot(corners[:, 0], corners[:, 1], 'r.')
-            # plt.xlim([0, width])
-            # plt.ylim([0, height])
-            # plt.savefig('plot.png')
-            # plt.close()
-
-            # plot middle point 
-            middle_point = np.array([middle[0], height - middle[1]]).astype(int)
-            cv2.circle(image, tuple(middle_point), 6, (0, 255, 0), cv2.FILLED, cv2.LINE_AA)
-
-            # plot corner point 
-            corner_points = corners
-            corner_points[:, 1] = height - corner_points[:, 1]
-            corner_points = corner_points.astype(int)
-            for p in corner_points:
-                cv2.circle(image, tuple(p), 6, (0, 0, 255), cv2.FILLED, cv2.LINE_AA)
-
-            # plot all points 
-            for p in np.round(pred).astype(int):
-                cv2.circle(image, tuple(p), 3, (255, 0, 0), cv2.FILLED, cv2.LINE_AA)
-
+            M = cv2.getRotationMatrix2D((width/2, height/2), -theta/np.pi*180.0, 1.0)
+            image = cv2.warpAffine(image, M, (1280, 720))
+            
             # cv2.imwrite("test.jpg", image)
+            # exit()
+
+        # crop image 
+        image = image[360-50:360+50, 640-100:640+100, :]
 
         # write frame
         out.write(image)
